@@ -226,16 +226,29 @@ export async function syncPlugin(
       { cwd: repoDir },
     );
 
-    // Ensure we're on main if it exists, or create orphan/main
-    const hasHead = (
-      await runCmd("git", ["rev-parse", "--verify", "HEAD"], {
+    // Prefer existing origin/main so pushes are always fast-forward when main already exists.
+    const hasOriginMain = (
+      await runCmd("git", ["rev-parse", "--verify", "origin/main"], {
         cwd: repoDir,
         allowFailure: true,
       })
     ).code === 0;
 
-    if (hasHead) {
-      await runCmd("git", ["checkout", "-B", "main"], { cwd: repoDir });
+    if (hasOriginMain) {
+      await runCmd("git", ["checkout", "-B", "main", "origin/main"], {
+        cwd: repoDir,
+      });
+    } else {
+      const hasHead = (
+        await runCmd("git", ["rev-parse", "--verify", "HEAD"], {
+          cwd: repoDir,
+          allowFailure: true,
+        })
+      ).code === 0;
+
+      if (hasHead) {
+        await runCmd("git", ["checkout", "-B", "main"], { cwd: repoDir });
+      }
     }
 
     const gitTagsRes = await runCmd("git", ["tag", "-l"], { cwd: repoDir });
