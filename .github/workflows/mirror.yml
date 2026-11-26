@@ -120,18 +120,30 @@ jobs:
           NEXT_REV: ${{ needs.discover.outputs.next_global_rev }}
           HAS_SLUGS: ${{ needs.discover.outputs.has_slugs }}
           SYNC_RESULT: ${{ needs.sync.result }}
+          MANUAL_SLUGS: ${{ github.event.inputs.slugs }}
+          BACKFILL_LIMIT: ${{ github.event.inputs.backfill_limit || '25' }}
         run: |
           git pull --rebase origin main
           if [ "$HAS_SLUGS" = "false" ] || [ "$SYNC_RESULT" = "success" ]; then
             deno eval '
-              const path = "state/cursor.json";
-              const cursor = JSON.parse(await Deno.readTextFile(path));
+              const cursorPath = "state/cursor.json";
+              const cursor = JSON.parse(await Deno.readTextFile(cursorPath));
               const nextRev = Number(Deno.env.get("NEXT_REV") || 0);
               if (nextRev > cursor.last_global_rev) {
                 cursor.last_global_rev = nextRev;
               }
               cursor.last_run_at = new Date().toISOString();
-              await Deno.writeTextFile(path, JSON.stringify(cursor, null, 2) + "\n");
+              await Deno.writeTextFile(cursorPath, JSON.stringify(cursor, null, 2) + "\n");
+
+              const manualSlugs = (Deno.env.get("MANUAL_SLUGS") || "").trim();
+              const backfillLimit = Number(Deno.env.get("BACKFILL_LIMIT") || 0);
+              if (!manualSlugs && backfillLimit > 0) {
+                const qPath = "state/backfill-queue.json";
+                const queue = JSON.parse(await Deno.readTextFile(qPath));
+                if (Array.isArray(queue) && queue.length > 0) {
+                  await Deno.writeTextFile(qPath, JSON.stringify(queue.slice(backfillLimit), null, 2) + "\n");
+                }
+              }
             '
           else
             echo "Sync job did not succeed (result=$SYNC_RESULT); keeping last_global_rev unchanged."
