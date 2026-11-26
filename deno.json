@@ -12,6 +12,7 @@
     "discover": "deno run --allow-net --allow-read --allow-write --allow-env src/discover.ts",
     "sync": "deno run --allow-all src/sync-plugin.ts",
     "backfill": "deno run --allow-net --allow-read --allow-write --allow-env src/backfill.ts",
+    "watch": "deno run --allow-run=gh --allow-env src/watch-actions.ts",
     "test": "deno test --allow-read --allow-write tests/",
     "check": "deno check src/**/*.ts"
   }
