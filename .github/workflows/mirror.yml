@@ -110,6 +110,11 @@ jobs:
       - name: Checkout orchestrator
         uses: actions/checkout@v4
 
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
       - name: Update cursor state
         env:
           NEXT_REV: ${{ needs.discover.outputs.next_global_rev }}
