@@ -91,7 +91,7 @@ async function main(): Promise<void> {
       "dry-run": false,
       once: false,
       interval: "5",
-      "max-age": "30",
+      "max-age": "20",
       repo: "WPPlugins/mirror-orchestrator",
       workflow: "mirror.yml",
     },
@@ -103,7 +103,7 @@ async function main(): Promise<void> {
   );
   const maxAgeMinutes = Math.max(
     1,
-    Number.parseInt(String(args["max-age"]), 10) || 30,
+    Number.parseInt(String(args["max-age"]), 10) || 20,
   );
   const repo = String(args.repo);
   const workflow = String(args.workflow);
