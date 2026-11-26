@@ -1,0 +1,144 @@
+name: Mirror WordPress.org Plugins
+
+on:
+  schedule:
+    # Conservative testing schedule (hourly); raise to */15 * * * * once validated.
+    - cron: "0 * * * *"
+  workflow_dispatch:
+    inputs:
+      slugs:
+        description: "Comma-separated plugin slugs to sync (optional override)"
+        required: false
+        default: ""
+        type: string
+      backfill_limit:
+        description: "Max backfill slugs to include per run"
+        required: false
+        default: "0"
+        type: string
+      max_slugs:
+        description: "Max total slugs to sync per run (0 = unlimited)"
+        required: false
+        default: "3"
+        type: string
+      max_tags:
+        description: "Max missing SVN tags to export per plugin per run (0 = unlimited)"
+        required: false
+        default: "5"
+        type: string
+      dry_run:
+        description: "Run in read-only dry-run mode without mutating GitHub or state/"
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: wpplugins-mirror
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      slugs: ${{ steps.run_discover.outputs.slugs }}
+      has_slugs: ${{ steps.run_discover.outputs.has_slugs }}
+      next_global_rev: ${{ steps.run_discover.outputs.next_global_rev }}
+    steps:
+      - name: Checkout orchestrator
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Run discovery
+        id: run_discover
+        run: |
+          ARGS="--backfill-limit ${{ github.event.inputs.backfill_limit || '0' }} --max-slugs ${{ github.event.inputs.max_slugs || '3' }}"
+          if [ -n "${{ github.event.inputs.slugs }}" ]; then
+            ARGS="$ARGS --slugs ${{ github.event.inputs.slugs }}"
+          fi
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          deno task discover $ARGS
+
+  sync:
+    needs: discover
+    if: needs.discover.outputs.has_slugs == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 2
+      fail-fast: false
+      matrix:
+        slug: ${{ fromJson(needs.discover.outputs.slugs) }}
+    steps:
+      - name: Checkout orchestrator
+        uses: actions/checkout@v4
+
+      - name: Install Subversion
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq subversion
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Sync plugin (${{ matrix.slug }})
+        env:
+          APP_ID: ${{ secrets.APP_ID }}
+          APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+          TARGET_ORG: ${{ secrets.TARGET_ORG || 'WPPlugins' }}
+        run: |
+          ARGS="--slug ${{ matrix.slug }} --max-tags ${{ github.event.inputs.max_tags || '5' }}"
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          deno task sync $ARGS
+
+  finalize:
+    needs: [discover, sync]
+    if: always() && needs.discover.result == 'success' && github.event.inputs.dry_run != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout orchestrator
+        uses: actions/checkout@v4
+
+      - name: Update cursor state
+        env:
+          NEXT_REV: ${{ needs.discover.outputs.next_global_rev }}
+          HAS_SLUGS: ${{ needs.discover.outputs.has_slugs }}
+          SYNC_RESULT: ${{ needs.sync.result }}
+        run: |
+          if [ "$HAS_SLUGS" = "false" ] || [ "$SYNC_RESULT" = "success" ]; then
+            deno eval '
+              const path = "state/cursor.json";
+              const cursor = JSON.parse(await Deno.readTextFile(path));
+              const nextRev = Number(Deno.env.get("NEXT_REV") || 0);
+              if (nextRev > cursor.last_global_rev) {
+                cursor.last_global_rev = nextRev;
+              }
+              cursor.last_run_at = new Date().toISOString();
+              await Deno.writeTextFile(path, JSON.stringify(cursor, null, 2) + "\n");
+            '
+          else
+            echo "Sync job did not succeed (result=$SYNC_RESULT); keeping last_global_rev unchanged."
+          fi
+
+      - name: Commit updated state
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add state/*.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(state): update mirror cursor [skip ci]"
+            git push
+          else
+            echo "No state changes to commit."
+          fi
