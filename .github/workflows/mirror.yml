@@ -38,6 +38,7 @@ concurrency:
 
 permissions:
   contents: write
+  packages: read
 
 jobs:
   discover:
@@ -80,6 +81,9 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/wpplugins/mirror-runner:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     strategy:
       max-parallel: 6
       fail-fast: false
