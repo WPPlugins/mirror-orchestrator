@@ -29,6 +29,20 @@ export function deduplicateSlugs(
   return options.preserveOrder ? ordered : ordered.sort();
 }
 
+/** Partition items evenly into at most `maxShards` non-empty arrays. */
+export function partitionIntoShards<T>(
+  items: ReadonlyArray<T>,
+  maxShards = 6,
+): T[][] {
+  if (items.length === 0 || maxShards <= 0) return [];
+  const shardCount = Math.min(items.length, maxShards);
+  const shards: T[][] = Array.from({ length: shardCount }, () => []);
+  for (let i = 0; i < items.length; i++) {
+    shards[i % shardCount].push(items[i]);
+  }
+  return shards;
+}
+
 /** Parse a version-like tag string into core segments and optional prerelease segments. */
 function parseVersionParts(tag: string): {
   core: Array<number | string>;

@@ -44,6 +44,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       slugs: ${{ steps.run_discover.outputs.slugs }}
+      shards: ${{ steps.run_discover.outputs.shards }}
       has_slugs: ${{ steps.run_discover.outputs.has_slugs }}
       next_global_rev: ${{ steps.run_discover.outputs.next_global_rev }}
     steps:
@@ -54,6 +55,12 @@ jobs:
         uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+
+      - name: Cache Deno dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/deno
+          key: deno-${{ runner.os }}-${{ hashFiles('deno.lock') }}
 
       - name: Run discovery
         id: run_discover
@@ -71,36 +78,29 @@ jobs:
     needs: discover
     if: needs.discover.outputs.has_slugs == 'true'
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/wpplugins/mirror-runner:latest
     strategy:
       max-parallel: 6
       fail-fast: false
       matrix:
-        slug: ${{ fromJson(needs.discover.outputs.slugs) }}
+        shard: ${{ fromJson(needs.discover.outputs.shards) }}
     steps:
       - name: Checkout orchestrator
         uses: actions/checkout@v7
 
-      - name: Install Subversion
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq subversion
-
-      - name: Setup Deno
-        uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-
-      - name: Sync plugin (${{ matrix.slug }})
+      - name: Sync shard (${{ strategy.job-index }})
         env:
           APP_ID: ${{ secrets.APP_ID }}
           APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
           TARGET_ORG: ${{ secrets.TARGET_ORG || 'WPPlugins' }}
+          SHARD_SLUGS: ${{ toJson(matrix.shard) }}
         run: |
-          ARGS="--slug ${{ matrix.slug }} --max-tags ${{ github.event.inputs.max_tags || '25' }}"
+          ARGS="--max-tags ${{ github.event.inputs.max_tags || '25' }}"
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
             ARGS="$ARGS --dry-run"
           fi
-          deno task sync $ARGS
+          deno run --allow-all src/sync-shard.ts $ARGS
 
   finalize:
     needs: [discover, sync]
@@ -114,6 +114,12 @@ jobs:
         uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+
+      - name: Cache Deno dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/deno
+          key: deno-${{ runner.os }}-${{ hashFiles('deno.lock') }}
 
       - name: Update cursor state
         env:

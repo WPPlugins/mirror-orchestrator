@@ -5,6 +5,7 @@ import {
   deduplicateSlugs,
   diffMissingTags,
   filterOversizedFiles,
+  partitionIntoShards,
 } from "../src/utils.ts";
 import { parseTracChangelog } from "../src/wp-api.ts";
 
@@ -74,4 +75,13 @@ Deno.test("filterOversizedFiles removes files exceeding threshold and keeps smal
   } finally {
     await Deno.remove(tempDir, { recursive: true });
   }
+});
+
+Deno.test("partitionIntoShards distributes items across up to maxShards non-empty shards", () => {
+  assertEquals(partitionIntoShards([], 6), []);
+  assertEquals(partitionIntoShards(["a", "b"], 6), [["a"], ["b"]]);
+  assertEquals(partitionIntoShards(["a", "b", "c", "d", "e"], 2), [
+    ["a", "c", "e"],
+    ["b", "d"],
+  ]);
 });

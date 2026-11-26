@@ -4,18 +4,25 @@ import {
   type DiscoverManifest,
   STATE_PATHS,
 } from "./types.ts";
-import { deduplicateSlugs, readJsonFile } from "./utils.ts";
+import {
+  deduplicateSlugs,
+  partitionIntoShards,
+  readJsonFile,
+} from "./utils.ts";
 import { fetchTracUpdatesSince, queryWpPlugins } from "./wp-api.ts";
 
 const DEFAULT_BACKFILL_LIMIT = 25;
 const DEFAULT_MAX_SLUGS = 50; // Caps per-run fan-out to stay well under GitHub's 500/hr repo creation limit.
+const DEFAULT_SHARDS = 6;
 
 async function writeGithubOutputs(manifest: DiscoverManifest): Promise<void> {
   const outputPath = Deno.env.get("GITHUB_OUTPUT");
   if (!outputPath) return;
 
+  const shards = partitionIntoShards(manifest.slugs, DEFAULT_SHARDS);
   const lines = [
     `slugs=${JSON.stringify(manifest.slugs)}`,
+    `shards=${JSON.stringify(shards)}`,
     `has_slugs=${manifest.slugs.length > 0 ? "true" : "false"}`,
     `next_global_rev=${manifest.next_global_rev}`,
     `slug_count=${manifest.slugs.length}`,
