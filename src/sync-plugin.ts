@@ -77,8 +77,11 @@ async function exportSvnToRepo(
   await ensureDir(stagingDir);
 
   await runCmd("svn", ["export", "--force", "--quiet", svnUrl, stagingDir]);
-  // Strip .github/workflows from exported plugins: GitHub Apps without `workflows`
-  // permission cannot push workflow files, and mirrors should not run plugin CI.
+  // Strip .git (some plugins accidentally commit .git into SVN) and .github/workflows
+  // (GitHub Apps without `workflows` permission cannot push workflow files).
+  await Deno.remove(join(stagingDir, ".git"), { recursive: true }).catch(
+    () => {},
+  );
   await Deno.remove(join(stagingDir, ".github", "workflows"), {
     recursive: true,
   }).catch(() => {});
@@ -86,6 +89,7 @@ async function exportSvnToRepo(
 
   await cleanWorkingTree(repoDir);
   for await (const entry of Deno.readDir(stagingDir)) {
+    if (entry.name === ".git") continue;
     await copy(join(stagingDir, entry.name), join(repoDir, entry.name), {
       overwrite: true,
     });
@@ -286,7 +290,17 @@ export async function syncPlugin(
         const msg = `Release ${tag} (SVN r${meta.revision} by ${meta.author})`;
         await runCmd(
           "git",
-          ["commit", "-m", msg, "--date", meta.date],
+          [
+            "-c",
+            "user.name=WPPlugins Bot",
+            "-c",
+            "user.email=bot@wpplugins.github.io",
+            "commit",
+            "-m",
+            msg,
+            "--date",
+            meta.date,
+          ],
           { cwd: repoDir },
         );
         pushedSomething = true;
@@ -300,6 +314,10 @@ export async function syncPlugin(
         await runCmd(
           "git",
           [
+            "-c",
+            "user.name=WPPlugins Bot",
+            "-c",
+            "user.email=bot@wpplugins.github.io",
             "tag",
             "-a",
             tag,
@@ -329,7 +347,17 @@ export async function syncPlugin(
         const msg = `Sync trunk (SVN r${meta.revision} by ${meta.author})`;
         await runCmd(
           "git",
-          ["commit", "-m", msg, "--date", meta.date],
+          [
+            "-c",
+            "user.name=WPPlugins Bot",
+            "-c",
+            "user.email=bot@wpplugins.github.io",
+            "commit",
+            "-m",
+            msg,
+            "--date",
+            meta.date,
+          ],
           { cwd: repoDir },
         );
         pushedSomething = true;

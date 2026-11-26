@@ -134,8 +134,10 @@ jobs:
           BACKFILL_LIMIT: ${{ github.event.inputs.backfill_limit || '25' }}
         run: |
           git pull --rebase origin main
-          if [ "$HAS_SLUGS" = "false" ] || [ "$SYNC_RESULT" = "success" ]; then
-            deno eval '
+          deno eval '
+            const hasSlugs = Deno.env.get("HAS_SLUGS");
+            const syncResult = Deno.env.get("SYNC_RESULT");
+            if (hasSlugs === "false" || syncResult === "success") {
               const cursorPath = "state/cursor.json";
               const cursor = JSON.parse(await Deno.readTextFile(cursorPath));
               const nextRev = Number(Deno.env.get("NEXT_REV") || 0);
@@ -144,20 +146,22 @@ jobs:
               }
               cursor.last_run_at = new Date().toISOString();
               await Deno.writeTextFile(cursorPath, JSON.stringify(cursor, null, 2) + "\n");
+            } else {
+              console.log(`Sync job did not succeed (result=${syncResult}); keeping last_global_rev unchanged.`);
+            }
 
-              const manualSlugs = (Deno.env.get("MANUAL_SLUGS") || "").trim();
-              const backfillLimit = Number(Deno.env.get("BACKFILL_LIMIT") || 0);
-              if (!manualSlugs && backfillLimit > 0) {
-                const qPath = "state/backfill-queue.json";
-                const queue = JSON.parse(await Deno.readTextFile(qPath));
-                if (Array.isArray(queue) && queue.length > 0) {
-                  await Deno.writeTextFile(qPath, JSON.stringify(queue.slice(backfillLimit), null, 2) + "\n");
-                }
+            // Advance backfill queue whenever sync ran to completion (even if individual slugs failed)
+            // so a single bad plugin never wedges the entire queue.
+            const manualSlugs = (Deno.env.get("MANUAL_SLUGS") || "").trim();
+            const backfillLimit = Number(Deno.env.get("BACKFILL_LIMIT") || 0);
+            if (!manualSlugs && backfillLimit > 0 && (syncResult === "success" || syncResult === "failure")) {
+              const qPath = "state/backfill-queue.json";
+              const queue = JSON.parse(await Deno.readTextFile(qPath));
+              if (Array.isArray(queue) && queue.length > 0) {
+                await Deno.writeTextFile(qPath, JSON.stringify(queue.slice(backfillLimit), null, 2) + "\n");
               }
-            '
-          else
-            echo "Sync job did not succeed (result=$SYNC_RESULT); keeping last_global_rev unchanged."
-          fi
+            }
+          '
 
       - name: Commit updated state
         run: |
