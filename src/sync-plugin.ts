@@ -77,6 +77,11 @@ async function exportSvnToRepo(
   await ensureDir(stagingDir);
 
   await runCmd("svn", ["export", "--force", "--quiet", svnUrl, stagingDir]);
+  // Strip .github/workflows from exported plugins: GitHub Apps without `workflows`
+  // permission cannot push workflow files, and mirrors should not run plugin CI.
+  await Deno.remove(join(stagingDir, ".github", "workflows"), {
+    recursive: true,
+  }).catch(() => {});
   const oversized = await filterOversizedFiles(stagingDir, label);
 
   await cleanWorkingTree(repoDir);

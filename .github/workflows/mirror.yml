@@ -2,7 +2,8 @@ name: Mirror WordPress.org Plugins
 
 on:
   schedule:
-    - cron: "*/15 * * * *"
+    # Off-peak minutes avoid GitHub Actions :00/:15/:30/:45 thundering-herd drops.
+    - cron: "7,22,37,52 * * * *"
   workflow_dispatch:
     inputs:
       slugs:
