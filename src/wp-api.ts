@@ -250,8 +250,12 @@ export async function fetchPluginInfo(
 }
 
 /** Sanitize a WordPress plugin description for GitHub's 350-char limit. */
-export function formatRepoDescription(info: WpPluginInfo | null, slug: string): string {
-  const raw = info?.short_description || info?.name || `WordPress.org plugin mirror for ${slug}`;
+export function formatRepoDescription(
+  info: WpPluginInfo | null,
+  slug: string,
+): string {
+  const raw = info?.short_description || info?.name ||
+    `WordPress.org plugin mirror for ${slug}`;
   const clean = raw
     .replace(/<[^>]*>/g, "")
     .replace(/[\r\n\t]+/g, " ")

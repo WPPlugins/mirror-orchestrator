@@ -1,0 +1,31 @@
+name: Plugin Mirror Request / Sync Issue
+description: Request a WordPress.org plugin mirror or report an out-of-sync repository
+title: "[Plugin]: "
+labels: ["plugin-request"]
+body:
+  - type: input
+    id: slug
+    attributes:
+      label: WordPress.org Plugin Slug
+      description: The exact slug from `https://wordpress.org/plugins/<slug>/`.
+      placeholder: e.g. contact-form-7
+    validations:
+      required: true
+  - type: dropdown
+    id: request_type
+    attributes:
+      label: Request Type
+      options:
+        - Initial mirror / backfill priority
+        - Missing tags or out-of-date trunk
+        - Oversized file (>95 MB) notice
+        - Metadata / description mismatch
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Additional Details
+      description: Any relevant version tags, SVN revision numbers, or links.
+    validations:
+      required: false

@@ -81,8 +81,19 @@ function derWrap(tag: number, payload: Uint8Array): Uint8Array {
 function wrapPkcs1InPkcs8(pkcs1Der: Uint8Array): Uint8Array {
   // AlgorithmIdentifier: SEQUENCE { OID 1.2.840.113549.1.1.1 (rsaEncryption), NULL }
   const rsaOid = new Uint8Array([
-    0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01,
-    0x05, 0x00,
+    0x06,
+    0x09,
+    0x2a,
+    0x86,
+    0x48,
+    0x86,
+    0xf7,
+    0x0d,
+    0x01,
+    0x01,
+    0x01,
+    0x05,
+    0x00,
   ]);
   const algId = derWrap(0x30, rsaOid);
   const version = new Uint8Array([0x02, 0x01, 0x00]); // INTEGER 0
@@ -284,7 +295,9 @@ export class GitHubAppClient {
         }
 
         console.warn(
-          `[github-app] ${response.status} on ${method} ${path}; retrying in ${Math.round(waitMs / 1000)}s (attempt ${attempt + 1}/${MAX_RETRIES})`,
+          `[github-app] ${response.status} on ${method} ${path}; retrying in ${
+            Math.round(waitMs / 1000)
+          }s (attempt ${attempt + 1}/${MAX_RETRIES})`,
         );
         await sleep(waitMs);
         continue;
@@ -320,7 +333,9 @@ export class GitHubAppClient {
   async getRepo(repoName: string): Promise<GitHubRepo | null> {
     return await this.request<GitHubRepo | null>(
       "GET",
-      `/repos/${encodeURIComponent(this.targetOrg)}/${encodeURIComponent(repoName)}`,
+      `/repos/${encodeURIComponent(this.targetOrg)}/${
+        encodeURIComponent(repoName)
+      }`,
       undefined,
       true,
     );
@@ -360,7 +375,9 @@ export class GitHubAppClient {
 
     return await this.request<GitHubRepo>(
       "PATCH",
-      `/repos/${encodeURIComponent(this.targetOrg)}/${encodeURIComponent(repoName)}`,
+      `/repos/${encodeURIComponent(this.targetOrg)}/${
+        encodeURIComponent(repoName)
+      }`,
       {
         description: options.description,
         homepage: options.homepage,
@@ -375,7 +392,9 @@ export class GitHubAppClient {
 
     await this.request<{ names: string[] }>(
       "PUT",
-      `/repos/${encodeURIComponent(this.targetOrg)}/${encodeURIComponent(repoName)}/topics`,
+      `/repos/${encodeURIComponent(this.targetOrg)}/${
+        encodeURIComponent(repoName)
+      }/topics`,
       { names: topics },
     );
   }

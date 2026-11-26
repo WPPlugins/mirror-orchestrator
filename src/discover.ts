@@ -1,8 +1,8 @@
 import { parseArgs } from "@std/cli";
 import {
-  STATE_PATHS,
   type CursorState,
   type DiscoverManifest,
+  STATE_PATHS,
 } from "./types.ts";
 import { deduplicateSlugs, readJsonFile } from "./utils.ts";
 import { fetchTracUpdatesSince, queryWpPlugins } from "./wp-api.ts";
@@ -39,10 +39,13 @@ async function main(): Promise<void> {
   const dryRun = Boolean(args["dry-run"]);
   const backfillLimit = Math.max(
     0,
-    Number.parseInt(String(args["backfill-limit"]), 10) || DEFAULT_BACKFILL_LIMIT,
+    Number.parseInt(String(args["backfill-limit"]), 10) ||
+      DEFAULT_BACKFILL_LIMIT,
   );
   const parsedMaxSlugs = Number.parseInt(String(args["max-slugs"]), 10);
-  const maxSlugs = Number.isNaN(parsedMaxSlugs) ? DEFAULT_MAX_SLUGS : Math.max(0, parsedMaxSlugs);
+  const maxSlugs = Number.isNaN(parsedMaxSlugs)
+    ? DEFAULT_MAX_SLUGS
+    : Math.max(0, parsedMaxSlugs);
 
   const cursor = await readJsonFile<CursorState>(STATE_PATHS.cursor, {
     last_global_rev: 0,
@@ -83,7 +86,9 @@ async function main(): Promise<void> {
     );
   }
 
-  console.error("[discover] Querying WP.org Plugin Directory (updated + new)...");
+  console.error(
+    "[discover] Querying WP.org Plugin Directory (updated + new)...",
+  );
   const [updatedRes, newRes] = await Promise.all([
     queryWpPlugins("updated", 1, 100),
     queryWpPlugins("new", 1, 100),

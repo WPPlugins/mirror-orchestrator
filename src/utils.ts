@@ -122,11 +122,13 @@ export async function filterOversizedFiles(
   const removed: OversizedFileRecord[] = [];
   const now = new Date().toISOString();
 
-  for await (const entry of walk(rootDir, {
-    includeDirs: false,
-    followSymlinks: false,
-    skip: [/^\.git([\\/]|$)/, /[\\/]\.git([\\/]|$)/],
-  })) {
+  for await (
+    const entry of walk(rootDir, {
+      includeDirs: false,
+      followSymlinks: false,
+      skip: [/^\.git([\\/]|$)/, /[\\/]\.git([\\/]|$)/],
+    })
+  ) {
     const stat = await Deno.stat(entry.path);
     if (stat.size > maxBytes) {
       const relPath = relative(rootDir, entry.path).replace(/\\/g, "/");
@@ -155,7 +157,10 @@ export async function readJsonFile<T>(path: string, fallback: T): Promise<T> {
   }
 }
 
-export async function writeJsonFile(path: string, data: unknown): Promise<void> {
+export async function writeJsonFile(
+  path: string,
+  data: unknown,
+): Promise<void> {
   await ensureDir(dirname(path));
   await Deno.writeTextFile(path, `${JSON.stringify(data, null, 2)}\n`);
 }
@@ -169,7 +174,11 @@ export interface CmdResult {
 export async function runCmd(
   cmd: string,
   args: string[],
-  options: { cwd?: string; env?: Record<string, string>; allowFailure?: boolean } = {},
+  options: {
+    cwd?: string;
+    env?: Record<string, string>;
+    allowFailure?: boolean;
+  } = {},
 ): Promise<CmdResult> {
   const command = new Deno.Command(cmd, {
     args,
@@ -185,7 +194,9 @@ export async function runCmd(
 
   if (output.code !== 0 && !options.allowFailure) {
     throw new Error(
-      `Command failed (${output.code}): ${cmd} ${args.join(" ")}\n${stderr.trim() || stdout.trim()}`,
+      `Command failed (${output.code}): ${cmd} ${args.join(" ")}\n${
+        stderr.trim() || stdout.trim()
+      }`,
     );
   }
 

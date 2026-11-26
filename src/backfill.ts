@@ -1,5 +1,5 @@
 import { parseArgs } from "@std/cli";
-import { STATE_PATHS, type CursorState } from "./types.ts";
+import { type CursorState, STATE_PATHS } from "./types.ts";
 import { deduplicateSlugs, readJsonFile, writeJsonFile } from "./utils.ts";
 import { queryWpPlugins } from "./wp-api.ts";
 
@@ -17,8 +17,14 @@ async function main(): Promise<void> {
 
   const dryRun = Boolean(args["dry-run"]);
   const reset = Boolean(args.reset);
-  const pagesToFetch = Math.max(1, Number.parseInt(String(args.pages), 10) || 3);
-  const consumeCount = Math.max(0, Number.parseInt(String(args.consume), 10) || 0);
+  const pagesToFetch = Math.max(
+    1,
+    Number.parseInt(String(args.pages), 10) || 3,
+  );
+  const consumeCount = Math.max(
+    0,
+    Number.parseInt(String(args.consume), 10) || 0,
+  );
 
   const cursor = await readJsonFile<CursorState>(STATE_PATHS.cursor, {
     last_global_rev: 0,
@@ -39,7 +45,9 @@ async function main(): Promise<void> {
   const fetchedSlugs: string[] = [];
 
   for (let i = 0; i < pagesToFetch; i++) {
-    console.error(`[backfill] Fetching WP.org popular plugins page ${currentPage}...`);
+    console.error(
+      `[backfill] Fetching WP.org popular plugins page ${currentPage}...`,
+    );
     const res = await queryWpPlugins("popular", currentPage, 100);
     for (const plugin of res.plugins) {
       fetchedSlugs.push(plugin.slug);

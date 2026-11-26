@@ -2,11 +2,7 @@ import { parseArgs } from "@std/cli";
 import { copy, ensureDir } from "@std/fs";
 import { join } from "@std/path";
 import { GitHubAppClient } from "./github-app.ts";
-import {
-  STATE_PATHS,
-  type ErrorsState,
-  type OversizedState,
-} from "./types.ts";
+import { type ErrorsState, type OversizedState, STATE_PATHS } from "./types.ts";
 import {
   diffMissingTags,
   filterOversizedFiles,
@@ -179,12 +175,15 @@ export async function syncPlugin(
     ghToken = await gh.getInstallationToken();
   }
 
-  const workRoot = await Deno.makeTempDir({ prefix: `wp-sync-${normalizedSlug}-` });
+  const workRoot = await Deno.makeTempDir({
+    prefix: `wp-sync-${normalizedSlug}-`,
+  });
   const repoDir = join(workRoot, "repo");
   const stagingDir = join(workRoot, "svn-export");
 
   try {
-    const publicRemote = `https://github.com/${targetOrg}/${normalizedSlug}.git`;
+    const publicRemote =
+      `https://github.com/${targetOrg}/${normalizedSlug}.git`;
     const authRemote = ghToken
       ? `https://x-access-token:${ghToken}@github.com/${targetOrg}/${normalizedSlug}.git`
       : publicRemote;
@@ -198,7 +197,9 @@ export async function syncPlugin(
       );
       if (cloneRes.code !== 0) {
         if (!dryRun) {
-          throw new Error(`Failed to clone ${publicRemote}: ${cloneRes.stderr}`);
+          throw new Error(
+            `Failed to clone ${publicRemote}: ${cloneRes.stderr}`,
+          );
         }
         initializedFresh = true;
       }
@@ -211,7 +212,9 @@ export async function syncPlugin(
       await runCmd("git", ["init", "-b", "main"], { cwd: repoDir });
     }
 
-    await runCmd("git", ["config", "user.name", "WPPlugins Bot"], { cwd: repoDir });
+    await runCmd("git", ["config", "user.name", "WPPlugins Bot"], {
+      cwd: repoDir,
+    });
     await runCmd(
       "git",
       ["config", "user.email", "bot@wpplugins.github.io"],
@@ -316,7 +319,9 @@ export async function syncPlugin(
         console.log(`[sync] ${normalizedSlug}: trunk already up to date.`);
       }
     } else {
-      console.warn(`[sync] ${normalizedSlug}: no trunk directory found in SVN.`);
+      console.warn(
+        `[sync] ${normalizedSlug}: no trunk directory found in SVN.`,
+      );
     }
 
     if (allOversized.length > 0) {
@@ -365,12 +370,16 @@ async function main(): Promise<void> {
   });
 
   if (!args.slug) {
-    console.error("Usage: deno task sync --slug <plugin-slug> [--max-tags <n>] [--dry-run]");
+    console.error(
+      "Usage: deno task sync --slug <plugin-slug> [--max-tags <n>] [--dry-run]",
+    );
     Deno.exit(1);
   }
 
   const parsedMaxTags = Number.parseInt(String(args["max-tags"]), 10);
-  const maxTags = Number.isNaN(parsedMaxTags) ? DEFAULT_MAX_TAGS : Math.max(0, parsedMaxTags);
+  const maxTags = Number.isNaN(parsedMaxTags)
+    ? DEFAULT_MAX_TAGS
+    : Math.max(0, parsedMaxTags);
   await syncPlugin(String(args.slug), Boolean(args["dry-run"]), maxTags);
 }
 

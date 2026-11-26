@@ -1,0 +1,48 @@
+name: Bug Report
+description: Report a bug in the mirror orchestrator, discovery, or SVN-to-Git sync
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting an issue! Please include as much detail as possible so we can reproduce it.
+  - type: input
+    id: slug
+    attributes:
+      label: Affected Plugin Slug (if applicable)
+      description: The WordPress.org plugin slug involved, if any.
+      placeholder: e.g. akismet
+    validations:
+      required: false
+  - type: input
+    id: run_url
+    attributes:
+      label: GitHub Actions Run URL
+      description: Link to the failing workflow run, if applicable.
+      placeholder: https://github.com/WPPlugins/mirror-orchestrator/actions/runs/...
+    validations:
+      required: false
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: A clear description of the bug and any error output.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What you expected to happen instead.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submission checks
+      options:
+        - label: I have checked existing issues to avoid duplicates.
+          required: true
+        - label: I have tested locally with `--dry-run` (if running locally).
+          required: false
