@@ -13,7 +13,7 @@ import {
 import { fetchPluginInfo, formatRepoDescription } from "./wp-api.ts";
 
 const SVN_BASE = "https://plugins.svn.wordpress.org";
-const DEFAULT_MAX_TAGS = 5; // Harsh testing cap; pass --max-tags 0 for unlimited.
+const DEFAULT_MAX_TAGS = 25; // Caps tags exported per run for large histories; pass --max-tags 0 for unlimited.
 
 interface SvnMetadata {
   revision: string;

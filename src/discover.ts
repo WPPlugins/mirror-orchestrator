@@ -8,7 +8,7 @@ import { deduplicateSlugs, readJsonFile } from "./utils.ts";
 import { fetchTracUpdatesSince, queryWpPlugins } from "./wp-api.ts";
 
 const DEFAULT_BACKFILL_LIMIT = 25;
-const DEFAULT_MAX_SLUGS = 3; // Harsh testing cap; increase or pass --max-slugs 0 for unlimited.
+const DEFAULT_MAX_SLUGS = 50; // Caps per-run fan-out to stay well under GitHub's 500/hr repo creation limit.
 
 async function writeGithubOutputs(manifest: DiscoverManifest): Promise<void> {
   const outputPath = Deno.env.get("GITHUB_OUTPUT");

@@ -2,8 +2,7 @@ name: Mirror WordPress.org Plugins
 
 on:
   schedule:
-    # Conservative testing schedule (hourly); raise to */15 * * * * once validated.
-    - cron: "0 * * * *"
+    - cron: "*/15 * * * *"
   workflow_dispatch:
     inputs:
       slugs:
@@ -14,17 +13,17 @@ on:
       backfill_limit:
         description: "Max backfill slugs to include per run"
         required: false
-        default: "0"
+        default: "25"
         type: string
       max_slugs:
         description: "Max total slugs to sync per run (0 = unlimited)"
         required: false
-        default: "3"
+        default: "50"
         type: string
       max_tags:
         description: "Max missing SVN tags to export per plugin per run (0 = unlimited)"
         required: false
-        default: "5"
+        default: "25"
         type: string
       dry_run:
         description: "Run in read-only dry-run mode without mutating GitHub or state/"
@@ -58,7 +57,7 @@ jobs:
       - name: Run discovery
         id: run_discover
         run: |
-          ARGS="--backfill-limit ${{ github.event.inputs.backfill_limit || '0' }} --max-slugs ${{ github.event.inputs.max_slugs || '3' }}"
+          ARGS="--backfill-limit ${{ github.event.inputs.backfill_limit || '25' }} --max-slugs ${{ github.event.inputs.max_slugs || '50' }}"
           if [ -n "${{ github.event.inputs.slugs }}" ]; then
             ARGS="$ARGS --slugs ${{ github.event.inputs.slugs }}"
           fi
@@ -72,7 +71,7 @@ jobs:
     if: needs.discover.outputs.has_slugs == 'true'
     runs-on: ubuntu-latest
     strategy:
-      max-parallel: 2
+      max-parallel: 6
       fail-fast: false
       matrix:
         slug: ${{ fromJson(needs.discover.outputs.slugs) }}
@@ -96,7 +95,7 @@ jobs:
           APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
           TARGET_ORG: ${{ secrets.TARGET_ORG || 'WPPlugins' }}
         run: |
-          ARGS="--slug ${{ matrix.slug }} --max-tags ${{ github.event.inputs.max_tags || '5' }}"
+          ARGS="--slug ${{ matrix.slug }} --max-tags ${{ github.event.inputs.max_tags || '25' }}"
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
             ARGS="$ARGS --dry-run"
           fi
