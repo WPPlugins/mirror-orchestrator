@@ -48,7 +48,7 @@ jobs:
       next_global_rev: ${{ steps.run_discover.outputs.next_global_rev }}
     steps:
       - name: Checkout orchestrator
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Deno
         uses: denoland/setup-deno@v2
@@ -78,7 +78,7 @@ jobs:
         slug: ${{ fromJson(needs.discover.outputs.slugs) }}
     steps:
       - name: Checkout orchestrator
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Subversion
         run: |
@@ -108,7 +108,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout orchestrator
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Deno
         uses: denoland/setup-deno@v2
