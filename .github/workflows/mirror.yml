@@ -121,6 +121,7 @@ jobs:
           HAS_SLUGS: ${{ needs.discover.outputs.has_slugs }}
           SYNC_RESULT: ${{ needs.sync.result }}
         run: |
+          git pull --rebase origin main
           if [ "$HAS_SLUGS" = "false" ] || [ "$SYNC_RESULT" = "success" ]; then
             deno eval '
               const path = "state/cursor.json";
